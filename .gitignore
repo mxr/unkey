@@ -1,0 +1,9 @@
+*.egg-info
+*.pyc
+/.coverage
+/.idea
+/.mypy_cache
+/.pytest_cache
+/.tox
+/htmlcov
+/venv*
