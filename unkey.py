@@ -72,10 +72,12 @@ class Finder(ast.NodeVisitor):
             isinstance(node.func, ast.Name)
             and node.func.id in self.BUILTINS
             and len(node.args) == 1
+            and not node.keywords
             and isinstance(node.args[0], ast.Call)
             and isinstance(node.args[0].func, ast.Attribute)
             and node.args[0].func.attr == "keys"
-            and not node.keywords
+            and not node.args[0].args
+            and not node.args[0].keywords
         ):
             self.builtin_calls.add(_ast_to_offset(node.args[0].func))
         self.generic_visit(node)
