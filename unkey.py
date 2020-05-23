@@ -77,38 +77,18 @@ class Finder(ast.NodeVisitor):
             and not node.keywords
             and isinstance(node.args[0], ast.Call)
             and isinstance(node.args[0].func, ast.Attribute)
-            and isinstance(node.args[0].func.value, ast.Name)
             and node.args[0].func.attr == "keys"
             and not node.args[0].args
             and not node.args[0].keywords
         ):
-            self.builtin_attr_calls.add(_ast_to_offset(node.args[0].func.value))
-        elif (
-            isinstance(node.func, ast.Name)
-            and node.func.id in self.BUILTINS
-            and len(node.args) == 1
-            and not node.keywords
-            and isinstance(node.args[0], ast.Call)
-            and isinstance(node.args[0].func, ast.Attribute)
-            and isinstance(node.args[0].func.value, ast.Dict)
-            and node.args[0].func.attr == "keys"
-            and not node.args[0].args
-            and not node.args[0].keywords
-        ):
-            self.builtin_literal_calls.add(_ast_to_offset(node.args[0].func.value))
-        elif (
-            isinstance(node.func, ast.Name)
-            and node.func.id in self.BUILTINS
-            and len(node.args) == 1
-            and not node.keywords
-            and isinstance(node.args[0], ast.Call)
-            and isinstance(node.args[0].func, ast.Attribute)
-            and isinstance(node.args[0].func.value, ast.Call)
-            and node.args[0].func.attr == "keys"
-            and not node.args[0].args
-            and not node.args[0].keywords
-        ):
-            self.builtin_func_calls.add(_ast_to_offset(node.args[0].func.value.func))
+            value = node.args[0].func.value
+            if isinstance(value, ast.Name):
+                self.builtin_attr_calls.add(_ast_to_offset(value))
+            elif isinstance(value, ast.Dict):
+                self.builtin_literal_calls.add(_ast_to_offset(value))
+            elif isinstance(value, ast.Call):
+                self.builtin_func_calls.add(_ast_to_offset(value.func))
+
         self.generic_visit(node)
 
 

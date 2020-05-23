@@ -45,6 +45,7 @@ def test_builtins_dedent_coverage():
         pytest.param("min(d.keys(), key=lambda x: abs(x))", id="additional args"),
         pytest.param("min(d1.keys)", id="not keys func"),
         pytest.param("min(d1.keys(1,2,3))", id="keys with arg"),
+        pytest.param("min(d1().x.keys())", id="complex internals"),
     ),
 )
 def test_builtins_noop(s):
