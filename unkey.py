@@ -65,7 +65,8 @@ class Finder(ast.NodeVisitor):
     )
 
     def __init__(self) -> None:
-        self.builtin_calls: Set[Offset] = set()
+        self.builtin_attr_calls: Set[Offset] = set()
+        self.builtin_literal_calls: Set[Offset] = set()
 
     def visit_Call(self, node: ast.Call) -> None:
         if (
@@ -75,11 +76,25 @@ class Finder(ast.NodeVisitor):
             and not node.keywords
             and isinstance(node.args[0], ast.Call)
             and isinstance(node.args[0].func, ast.Attribute)
+            and isinstance(node.args[0].func.value, ast.Name)
             and node.args[0].func.attr == "keys"
             and not node.args[0].args
             and not node.args[0].keywords
         ):
-            self.builtin_calls.add(_ast_to_offset(node.args[0].func))
+            self.builtin_attr_calls.add(_ast_to_offset(node.args[0].func.value))
+        elif (
+            isinstance(node.func, ast.Name)
+            and node.func.id in self.BUILTINS
+            and len(node.args) == 1
+            and not node.keywords
+            and isinstance(node.args[0], ast.Call)
+            and isinstance(node.args[0].func, ast.Attribute)
+            and isinstance(node.args[0].func.value, ast.Dict)
+            and node.args[0].func.attr == "keys"
+            and not node.args[0].args
+            and not node.args[0].keywords
+        ):
+            self.builtin_literal_calls.add(_ast_to_offset(node.args[0].func.value))
         self.generic_visit(node)
 
 
@@ -108,7 +123,7 @@ def _fix(contents_text: str) -> str:
     visitor = Finder()
     visitor.visit(ast_obj)
 
-    if not any((visitor.builtin_calls,)):
+    if not any((visitor.builtin_attr_calls, visitor.builtin_literal_calls)):
         return contents_text
 
     try:
@@ -121,11 +136,21 @@ def _fix(contents_text: str) -> str:
     for i, token in reversed_enumerate(tokens):
         if not token.src:
             continue
-        elif (
-            token.offset in visitor.builtin_calls
-            and tokens_to_src(tokens[i + 1 : i + 4]) == ".keys("
-        ):
-            j = _find_token(tokens, i + 4, ")")
+        elif token.offset in visitor.builtin_attr_calls:
+            j = _find_token(tokens, i, ")")
+            del tokens[i + 1 : j + 1]
+        elif token.offset in visitor.builtin_literal_calls:
+            num = 1
+            j = i
+            while num != 0 and j + 1 < len(tokens):
+                j += 1
+                if tokens[j].src == "{":
+                    num += 1
+                elif tokens[j].src == "}":
+                    num -= 1
+            i = j
+
+            j = _find_token(tokens, i, ")")
             del tokens[i + 1 : j + 1]
 
     return tokens_to_src(tokens)
