@@ -1,7 +1,11 @@
+import argparse
 import ast
+import sys
 import tokenize
 import warnings
 from typing import List
+from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Union
 
@@ -125,8 +129,36 @@ def _fix(contents_text: str) -> str:
     return tokens_to_src(tokens)
 
 
-def main() -> int:
+def _fix_file(filename: str) -> int:
+    with open(filename, "rb") as fb:
+        contents_bytes = fb.read()
+
+    try:
+        contents_text = contents_bytes.decode()
+    except UnicodeDecodeError:
+        print(f"{filename} is non-utf-8 (not supported)")
+        return 1
+
+    fixed = _fix(contents_text)
+
+    if contents_text != fixed:
+        print(f"Rewriting {filename}", file=sys.stderr)
+        with open(filename, "w", encoding="UTF-8", newline="") as f:
+            f.write(fixed)
+        return 1
+
     return 0
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filenames", nargs="*")
+    args = parser.parse_args(argv)
+
+    ret = 0
+    for filename in args.filenames:
+        ret |= _fix_file(filename)
+    return ret
 
 
 if __name__ == "__main__":
