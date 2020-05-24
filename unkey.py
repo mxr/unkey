@@ -88,12 +88,10 @@ class Finder(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
-
         if (
             isinstance(node.func, ast.Name)
             and node.func.id in self.SIMPLE_BUILTINS
             and len(node.args) == 1
-            and not node.keywords
             and isinstance(node.args[0], ast.Call)
             and isinstance(node.args[0].func, ast.Attribute)
             and node.args[0].func.attr == "keys"
@@ -105,7 +103,6 @@ class Finder(ast.NodeVisitor):
             isinstance(node.func, ast.Name)
             and node.func.id == "filter"
             and len(node.args) == 2
-            and not node.keywords
             and isinstance(node.args[1], ast.Call)
             and isinstance(node.args[1].func, ast.Attribute)
             and node.args[1].func.attr == "keys"
@@ -127,7 +124,6 @@ class Finder(ast.NodeVisitor):
                 )
                 for arg in node.args
             )
-            and not node.keywords
         ):
             self.zip_calls.add(_ast_to_offset(node.func))
         self.generic_visit(node)
@@ -183,7 +179,6 @@ def _fix(contents_text: str) -> str:
 
     visitor = Finder()
     visitor.visit(ast_obj)
-
     if not any((visitor.builtin_calls, visitor.filter_calls, visitor.zip_calls)):
         return contents_text
 

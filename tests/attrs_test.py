@@ -17,6 +17,16 @@ def test_builtins(func):
         pytest.param(
             "min(d1().x.y().keys())", "min(d1().x.y())", id="complex internals"
         ),
+        pytest.param(
+            "min(d.keys(), key=lambda x: -x)",
+            "min(d, key=lambda x: -x)",
+            id="min kwargs",
+        ),
+        pytest.param(
+            "sorted(d.keys(), key=lambda x: -x, reverse=True)",
+            "sorted(d, key=lambda x: -x, reverse=True)",
+            id="sorted kwargs",
+        ),
     ),
 )
 def test_builtins_complex(s, expected):
@@ -48,7 +58,6 @@ def test_builtins_dedent_coverage():
 @pytest.mark.parametrize(
     "s",
     (
-        pytest.param("min(d.keys(), key=lambda x: abs(x))", id="additional args"),
         pytest.param("min(d1.keys)", id="not keys func"),
         pytest.param("min(d1.keys(1,2,3))", id="keys with arg"),
         pytest.param("foo.min(d.keys())", id="not builtin min - instance method"),
