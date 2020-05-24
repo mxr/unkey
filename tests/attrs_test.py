@@ -48,7 +48,6 @@ def test_builtins_dedent_coverage():
 @pytest.mark.parametrize(
     "s",
     (
-        pytest.param("filter(None, d.keys())", id="filter"),
         pytest.param("min(d.keys(), key=lambda x: abs(x))", id="additional args"),
         pytest.param("min(d1.keys)", id="not keys func"),
         pytest.param("min(d1.keys(1,2,3))", id="keys with arg"),

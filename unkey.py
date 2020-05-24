@@ -69,10 +69,11 @@ class Finder(ast.NodeVisitor):
         )
     )
 
-    BUILTINS = frozenset(("zip", *SIMPLE_BUILTINS))
+    BUILTINS = SIMPLE_BUILTINS | frozenset(("filter", "zip"))
 
     def __init__(self) -> None:
         self.builtin_calls: Set[Offset] = set()
+        self.filter_calls: Set[Offset] = set()
         self.zip_calls: Set[Offset] = set()
 
         self.lookalikes: Set[str] = set()
@@ -87,6 +88,7 @@ class Finder(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
+
         if (
             isinstance(node.func, ast.Name)
             and node.func.id in self.SIMPLE_BUILTINS
@@ -99,6 +101,18 @@ class Finder(ast.NodeVisitor):
             and not node.args[0].keywords
         ):
             self.builtin_calls.add(_ast_to_offset(node))
+        elif (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "filter"
+            and len(node.args) == 2
+            and not node.keywords
+            and isinstance(node.args[1], ast.Call)
+            and isinstance(node.args[1].func, ast.Attribute)
+            and node.args[1].func.attr == "keys"
+            and not node.args[1].args
+            and not node.args[1].keywords
+        ):
+            self.filter_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
             and node.func.id == "zip"
@@ -116,7 +130,6 @@ class Finder(ast.NodeVisitor):
             and not node.keywords
         ):
             self.zip_calls.add(_ast_to_offset(node.func))
-
         self.generic_visit(node)
 
 
@@ -171,7 +184,7 @@ def _fix(contents_text: str) -> str:
     visitor = Finder()
     visitor.visit(ast_obj)
 
-    if not any((visitor.builtin_calls, visitor.zip_calls, visitor.lookalikes,)):
+    if not any((visitor.builtin_calls, visitor.filter_calls, visitor.zip_calls)):
         return contents_text
 
     try:
@@ -188,6 +201,14 @@ def _fix(contents_text: str) -> str:
             j = _find_token(tokens, i, "(")
             func_args, _ = _parse_call_args(tokens, j)
             start, end = func_args[0]
+            src = tokens_to_src(tokens[start:end])
+            m = RE_KEYS.search(src)
+            assert m is not None
+            tokens[start:end] = [Token("CODE", src[: m.start()])]
+        elif token.offset in visitor.filter_calls:
+            j = _find_token(tokens, i, "(")
+            func_args, _ = _parse_call_args(tokens, j)
+            start, end = func_args[1]
             src = tokens_to_src(tokens[start:end])
             m = RE_KEYS.search(src)
             assert m is not None
