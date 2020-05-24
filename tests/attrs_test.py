@@ -10,9 +10,17 @@ def test_builtins(func):
     assert _fix(s) == f"{func}(d)"
 
 
-def test_builtins_whitespace():
-    s = "min(d.keys(\n))"
-    assert _fix(s) == "min(d)"
+@pytest.mark.parametrize(
+    ("s", "expected"),
+    (
+        pytest.param("min(d.keys(\n))", "min(d)", id="whitespace"),
+        pytest.param(
+            "min(d1().x.y().keys())", "min(d1().x.y())", id="complex internals"
+        ),
+    ),
+)
+def test_builtins_complex(s, expected):
+    assert _fix(s) == expected
 
 
 def test_builtins_dedent_coverage():
@@ -44,7 +52,14 @@ def test_builtins_dedent_coverage():
         pytest.param("min(d.keys(), key=lambda x: abs(x))", id="additional args"),
         pytest.param("min(d1.keys)", id="not keys func"),
         pytest.param("min(d1.keys(1,2,3))", id="keys with arg"),
-        pytest.param("min(d1().x.keys())", id="complex internals"),
+        pytest.param("foo.min(d.keys())", id="not builtin min - instance method"),
+        pytest.param(
+            "from foo import min\n\nmin(d.keys())", id="not builtin min - import"
+        ),
+        pytest.param(
+            "from foo import min2 as min\n\nmin(d.keys())",
+            id="not builtin min - import with asname",
+        ),
     ),
 )
 def test_builtins_noop(s):

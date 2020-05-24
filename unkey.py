@@ -1,5 +1,6 @@
 import argparse
 import ast
+import re
 import sys
 import tokenize
 import warnings
@@ -18,6 +19,7 @@ from tokenize_rt import tokens_to_src
 from tokenize_rt import UNIMPORTANT_WS
 
 BRACES = {"(": ")", "[": "]", "{": "}"}
+RE_KEYS = re.compile(r"\.keys\(\s*\)$")
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
@@ -67,12 +69,22 @@ class Finder(ast.NodeVisitor):
         )
     )
 
-    def __init__(self) -> None:
-        self.builtin_attr_calls: Set[Offset] = set()
-        self.builtin_literal_calls: Set[Offset] = set()
-        self.builtin_func_calls: Set[Offset] = set()
+    BUILTINS = frozenset(("zip", *SIMPLE_BUILTINS))
 
+    def __init__(self) -> None:
+        self.builtin_calls: Set[Offset] = set()
         self.zip_calls: Set[Offset] = set()
+
+        self.lookalikes: Set[str] = set()
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        self.lookalikes.update(
+            n
+            for n in (name.asname or name.name for name in node.names)
+            if n in self.BUILTINS
+        )
+
+        self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
         if (
@@ -86,13 +98,7 @@ class Finder(ast.NodeVisitor):
             and not node.args[0].args
             and not node.args[0].keywords
         ):
-            value = node.args[0].func.value
-            if isinstance(value, ast.Name):
-                self.builtin_attr_calls.add(_ast_to_offset(value))
-            elif isinstance(value, ast.Dict):
-                self.builtin_literal_calls.add(_ast_to_offset(value))
-            elif isinstance(value, ast.Call):
-                self.builtin_func_calls.add(_ast_to_offset(value.func))
+            self.builtin_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
             and node.func.id == "zip"
@@ -165,14 +171,7 @@ def _fix(contents_text: str) -> str:
     visitor = Finder()
     visitor.visit(ast_obj)
 
-    if not any(
-        (
-            visitor.builtin_attr_calls,
-            visitor.builtin_literal_calls,
-            visitor.builtin_func_calls,
-            visitor.zip_calls,
-        )
-    ):
+    if not any((visitor.builtin_calls, visitor.zip_calls, visitor.lookalikes,)):
         return contents_text
 
     try:
@@ -183,51 +182,24 @@ def _fix(contents_text: str) -> str:
     _fixup_dedent_tokens(tokens)
 
     for i, token in reversed_enumerate(tokens):
-        if not token.src:
+        if not token.src or token.src in visitor.lookalikes:
             continue
-        elif token.offset in visitor.builtin_attr_calls:
-            j = _find_token(tokens, i, ")")
-            del tokens[i + 1 : j + 1]
-        elif token.offset in visitor.builtin_literal_calls:
-            # go to final closing }
-            num = 1
-            j = i
-            while num != 0 and j + 1 < len(tokens):
-                j += 1
-                if tokens[j].src == "{":
-                    num += 1
-                elif tokens[j].src == "}":
-                    num -= 1
-            i = j
-
-            # find .keys() and delete it
-            j = _find_token(tokens, i, ")")
-            del tokens[i + 1 : j + 1]
-        elif token.offset in visitor.builtin_func_calls:
-            # go to opening ( of func call
-            i = _find_token(tokens, i, "(")
-
-            # go to closing ) of func call
-            num = 1
-            j = i
-            while num != 0 and j + 1 < len(tokens):
-                j += 1
-                if tokens[j].src == "(":
-                    num += 1
-                elif tokens[j].src == ")":
-                    num -= 1
-            i = j
-
-            # find .keys() and delete it
-            j = _find_token(tokens, i + 1, ")")
-            del tokens[i + 1 : j + 1]
+        elif token.offset in visitor.builtin_calls:
+            j = _find_token(tokens, i, "(")
+            func_args, _ = _parse_call_args(tokens, j)
+            start, end = func_args[0]
+            src = tokens_to_src(tokens[start:end])
+            m = RE_KEYS.search(src)
+            assert m is not None
+            tokens[start:end] = [Token("CODE", src[: m.start()])]
         elif token.offset in visitor.zip_calls:
             j = _find_token(tokens, i, "(")
             func_args, _ = _parse_call_args(tokens, j)
             for start, end in reversed(func_args):
                 src = tokens_to_src(tokens[start:end])
-                if src.endswith(".keys()"):
-                    tokens[start:end] = [Token("CODE", src[: -len(".keys()")])]
+                m = RE_KEYS.search(src)
+                if m:
+                    tokens[start:end] = [Token("CODE", src[: m.start()])]
 
     return tokens_to_src(tokens)
 
