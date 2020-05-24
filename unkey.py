@@ -7,6 +7,7 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 from typing import Union
 
 from tokenize_rt import Offset
@@ -15,6 +16,8 @@ from tokenize_rt import src_to_tokens
 from tokenize_rt import Token
 from tokenize_rt import tokens_to_src
 from tokenize_rt import UNIMPORTANT_WS
+
+BRACES = {"(": ")", "[": "]", "{": "}"}
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
@@ -38,7 +41,7 @@ def ast_parse(contents_text: str) -> ast.Module:
 
 
 class Finder(ast.NodeVisitor):
-    BUILTINS = frozenset(
+    SIMPLE_BUILTINS = frozenset(
         (
             "all",
             "any",
@@ -69,10 +72,12 @@ class Finder(ast.NodeVisitor):
         self.builtin_literal_calls: Set[Offset] = set()
         self.builtin_func_calls: Set[Offset] = set()
 
+        self.zip_calls: Set[Offset] = set()
+
     def visit_Call(self, node: ast.Call) -> None:
         if (
             isinstance(node.func, ast.Name)
-            and node.func.id in self.BUILTINS
+            and node.func.id in self.SIMPLE_BUILTINS
             and len(node.args) == 1
             and not node.keywords
             and isinstance(node.args[0], ast.Call)
@@ -88,6 +93,23 @@ class Finder(ast.NodeVisitor):
                 self.builtin_literal_calls.add(_ast_to_offset(value))
             elif isinstance(value, ast.Call):
                 self.builtin_func_calls.add(_ast_to_offset(value.func))
+        elif (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "zip"
+            and any(
+                (
+                    isinstance(arg, ast.Call)
+                    and isinstance(arg.func, ast.Attribute)
+                    and isinstance(arg.func.value, (ast.Name, ast.Dict, ast.Call))
+                    and arg.func.attr == "keys"
+                    and not arg.args
+                    and not arg.keywords
+                )
+                for arg in node.args
+            )
+            and not node.keywords
+        ):
+            self.zip_calls.add(_ast_to_offset(node.func))
 
         self.generic_visit(node)
 
@@ -108,6 +130,32 @@ def _fixup_dedent_tokens(tokens: List[Token]) -> None:
             tokens[i], tokens[i + 1] = tokens[i + 1], tokens[i]
 
 
+# vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
+def _parse_call_args(tokens: List[Token], i: int) -> Tuple[List[Tuple[int, int]], int]:
+    args = []
+    stack = [i]
+    i += 1
+    arg_start = i
+
+    while stack:
+        token = tokens[i]
+
+        if len(stack) == 1 and token.src == ",":
+            args.append((arg_start, i))
+            arg_start = i + 1
+        elif token.src in BRACES:
+            stack.append(i)
+        elif token.src == BRACES[tokens[stack[-1]].src]:
+            stack.pop()
+            # if we're at the end, append that argument
+            if not stack and tokens_to_src(tokens[arg_start:i]).strip():
+                args.append((arg_start, i))
+
+        i += 1
+
+    return args, i
+
+
 def _fix(contents_text: str) -> str:
     try:
         ast_obj = ast_parse(contents_text)
@@ -122,6 +170,7 @@ def _fix(contents_text: str) -> str:
             visitor.builtin_attr_calls,
             visitor.builtin_literal_calls,
             visitor.builtin_func_calls,
+            visitor.zip_calls,
         )
     ):
         return contents_text
@@ -172,6 +221,13 @@ def _fix(contents_text: str) -> str:
             # find .keys() and delete it
             j = _find_token(tokens, i + 1, ")")
             del tokens[i + 1 : j + 1]
+        elif token.offset in visitor.zip_calls:
+            j = _find_token(tokens, i, "(")
+            func_args, _ = _parse_call_args(tokens, j)
+            for start, end in reversed(func_args):
+                src = tokens_to_src(tokens[start:end])
+                if src.endswith(".keys()"):
+                    tokens[start:end] = [Token("CODE", src[: -len(".keys()")])]
 
     return tokens_to_src(tokens)
 

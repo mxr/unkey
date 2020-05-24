@@ -4,7 +4,7 @@ from unkey import _fix
 from unkey import Finder
 
 
-@pytest.mark.parametrize("func", Finder.BUILTINS)
+@pytest.mark.parametrize("func", Finder.SIMPLE_BUILTINS)
 def test_builtins(func):
     s = f"{func}(d.keys())"
     assert _fix(s) == f"{func}(d)"
@@ -41,7 +41,6 @@ def test_builtins_dedent_coverage():
     "s",
     (
         pytest.param("filter(None, d.keys())", id="filter"),
-        pytest.param("zip(d1.keys(), d2.keys())", id="zip"),
         pytest.param("min(d.keys(), key=lambda x: abs(x))", id="additional args"),
         pytest.param("min(d1.keys)", id="not keys func"),
         pytest.param("min(d1.keys(1,2,3))", id="keys with arg"),
