@@ -75,6 +75,7 @@ class Finder(ast.NodeVisitor):
         self.builtin_calls: Set[Offset] = set()
         self.filter_calls: Set[Offset] = set()
         self.zip_calls: Set[Offset] = set()
+        self.ins: Set[Offset] = set()
 
         self.lookalikes: Set[str] = set()
 
@@ -126,6 +127,30 @@ class Finder(ast.NodeVisitor):
             )
         ):
             self.zip_calls.add(_ast_to_offset(node.func))
+
+        self.generic_visit(node)
+
+    def visit_Compare(self, node: ast.Compare) -> None:
+        if (
+            len(node.ops) == 1
+            and isinstance(node.ops[0], ast.In)
+            and len(node.comparators) == 1
+            and isinstance(node.comparators[0], ast.Call)
+            and isinstance(node.comparators[0].func, ast.Attribute)
+            and (
+                isinstance(node.comparators[0].func.value, (ast.Name, ast.Dict))
+                or (
+                    isinstance(node.comparators[0].func.value, ast.Call)
+                    and isinstance(node.comparators[0].func.value.func, ast.Name)
+                    and not node.comparators[0].func.value.args
+                    and not node.comparators[0].func.value.keywords
+                )
+            )
+            and node.comparators[0].func.attr == "keys"
+            and not node.comparators[0].args
+            and not node.comparators[0].keywords
+        ):
+            self.ins.add(_ast_to_offset(node.comparators[0].func))
         self.generic_visit(node)
 
 
@@ -179,7 +204,9 @@ def _fix(contents_text: str) -> str:
 
     visitor = Finder()
     visitor.visit(ast_obj)
-    if not any((visitor.builtin_calls, visitor.filter_calls, visitor.zip_calls)):
+    if not any(
+        (visitor.builtin_calls, visitor.filter_calls, visitor.zip_calls, visitor.ins)
+    ):
         return contents_text
 
     try:
@@ -216,6 +243,12 @@ def _fix(contents_text: str) -> str:
                 m = RE_KEYS.search(src)
                 if m:
                     tokens[start:end] = [Token("CODE", src[: m.start()])]
+        elif token.offset in visitor.ins:
+            j = _find_token(tokens, _find_token(tokens, i, "keys"), ")")
+            src = tokens_to_src(tokens[i : j + 1])
+            m = RE_KEYS.search(src)
+            assert m is not None
+            tokens[i : j + 1] = [Token("CODE", src[: m.start()])]
 
     return tokens_to_src(tokens)
 
