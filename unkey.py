@@ -56,7 +56,6 @@ class Finder(ast.NodeVisitor):
             "iter",
             "len",
             "list",
-            "map",
             "max",
             "min",
             "next",
@@ -69,12 +68,14 @@ class Finder(ast.NodeVisitor):
         )
     )
 
-    LOOKALIKES = SIMPLE_BUILTINS | frozenset(("filter", "join", "zip"))
+    FUNCTIONAL = frozenset(("filter", "map"))
+
+    LOOKALIKES = SIMPLE_BUILTINS | FUNCTIONAL | frozenset(("join", "zip"))
 
     def __init__(self) -> None:
         self.builtin_calls: Set[Offset] = set()
         self.join_calls: Set[Offset] = set()
-        self.filter_calls: Set[Offset] = set()
+        self.functional_calls: Set[Offset] = set()
         self.zip_calls: Set[Offset] = set()
         self.comparison_ins: Set[Offset] = set()
         self.comprehension_ins: Set[Offset] = set()
@@ -115,7 +116,7 @@ class Finder(ast.NodeVisitor):
             self.join_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
-            and node.func.id == "filter"
+            and node.func.id in self.FUNCTIONAL
             and len(node.args) == 2
             and isinstance(node.args[1], ast.Call)
             and isinstance(node.args[1].func, ast.Attribute)
@@ -123,7 +124,7 @@ class Finder(ast.NodeVisitor):
             and not node.args[1].args
             and not node.args[1].keywords
         ):
-            self.filter_calls.add(_ast_to_offset(node))
+            self.functional_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
             and node.func.id == "zip"
@@ -250,7 +251,7 @@ def _fix(contents_text: str) -> str:
         (
             visitor.builtin_calls,
             visitor.join_calls,
-            visitor.filter_calls,
+            visitor.functional_calls,
             visitor.zip_calls,
             visitor.comparison_ins,
             visitor.comprehension_ins,
@@ -278,7 +279,7 @@ def _fix(contents_text: str) -> str:
             m = RE_KEYS.search(src)
             assert m is not None
             tokens[start:end] = [Token("CODE", src[: m.start()])]
-        elif token.offset in visitor.filter_calls:
+        elif token.offset in visitor.functional_calls:
             j = _find_token(tokens, i, "(")
             func_args, _ = _parse_call_args(tokens, j)
             start, end = func_args[1]
