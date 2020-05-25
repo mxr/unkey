@@ -75,7 +75,8 @@ class Finder(ast.NodeVisitor):
         self.builtin_calls: Set[Offset] = set()
         self.filter_calls: Set[Offset] = set()
         self.zip_calls: Set[Offset] = set()
-        self.ins: Set[Offset] = set()
+        self.comparison_ins: Set[Offset] = set()
+        self.comprehension_ins: Set[Offset] = set()
 
         self.lookalikes: Set[str] = set()
 
@@ -150,8 +151,37 @@ class Finder(ast.NodeVisitor):
             and not node.comparators[0].args
             and not node.comparators[0].keywords
         ):
-            self.ins.add(_ast_to_offset(node.comparators[0].func))
+            self.comparison_ins.add(_ast_to_offset(node.comparators[0].func))
         self.generic_visit(node)
+
+    def _visit_comp(
+        self, node: Union[ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp]
+    ) -> None:
+        self.comprehension_ins.update(
+            _ast_to_offset(cmp.iter.func)
+            for cmp in node.generators
+            if (
+                isinstance(cmp.iter, ast.Call)
+                and isinstance(cmp.iter.func, ast.Attribute)
+                and (
+                    isinstance(cmp.iter.func.value, (ast.Name, ast.Dict))
+                    or (
+                        isinstance(cmp.iter.func.value, ast.Call)
+                        and isinstance(cmp.iter.func.value.func, ast.Name)
+                        and not cmp.iter.func.value.args
+                        and not cmp.iter.func.value.keywords
+                    )
+                )
+                and cmp.iter.func.attr == "keys"
+                and not cmp.iter.args
+                and not cmp.iter.keywords
+            )
+        )
+
+        self.generic_visit(node)
+
+    visit_ListComp = visit_SetComp = _visit_comp
+    visit_DictComp = visit_GeneratorExp = _visit_comp
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
@@ -205,7 +235,13 @@ def _fix(contents_text: str) -> str:
     visitor = Finder()
     visitor.visit(ast_obj)
     if not any(
-        (visitor.builtin_calls, visitor.filter_calls, visitor.zip_calls, visitor.ins)
+        (
+            visitor.builtin_calls,
+            visitor.filter_calls,
+            visitor.zip_calls,
+            visitor.comparison_ins,
+            visitor.comprehension_ins,
+        )
     ):
         return contents_text
 
@@ -243,7 +279,10 @@ def _fix(contents_text: str) -> str:
                 m = RE_KEYS.search(src)
                 if m:
                     tokens[start:end] = [Token("CODE", src[: m.start()])]
-        elif token.offset in visitor.ins:
+        elif (
+            token.offset in visitor.comparison_ins
+            or token.offset in visitor.comprehension_ins
+        ):
             j = _find_token(tokens, _find_token(tokens, i, "keys"), ")")
             src = tokens_to_src(tokens[i : j + 1])
             m = RE_KEYS.search(src)
