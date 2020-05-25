@@ -132,7 +132,6 @@ class Finder(ast.NodeVisitor):
                 (
                     isinstance(arg, ast.Call)
                     and isinstance(arg.func, ast.Attribute)
-                    and isinstance(arg.func.value, (ast.Name, ast.Dict, ast.Call))
                     and arg.func.attr == "keys"
                     and not arg.args
                     and not arg.keywords
