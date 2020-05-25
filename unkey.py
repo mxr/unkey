@@ -69,10 +69,11 @@ class Finder(ast.NodeVisitor):
         )
     )
 
-    BUILTINS = SIMPLE_BUILTINS | frozenset(("filter", "zip"))
+    LOOKALIKES = SIMPLE_BUILTINS | frozenset(("filter", "join", "zip"))
 
     def __init__(self) -> None:
         self.builtin_calls: Set[Offset] = set()
+        self.join_calls: Set[Offset] = set()
         self.filter_calls: Set[Offset] = set()
         self.zip_calls: Set[Offset] = set()
         self.comparison_ins: Set[Offset] = set()
@@ -84,7 +85,7 @@ class Finder(ast.NodeVisitor):
         self.lookalikes.update(
             n
             for n in (name.asname or name.name for name in node.names)
-            if n in self.BUILTINS
+            if n in self.LOOKALIKES
         )
 
         self.generic_visit(node)
@@ -101,6 +102,17 @@ class Finder(ast.NodeVisitor):
             and not node.args[0].keywords
         ):
             self.builtin_calls.add(_ast_to_offset(node))
+        elif (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "join"
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Call)
+            and isinstance(node.args[0].func, ast.Attribute)
+            and node.args[0].func.attr == "keys"
+            and not node.args[0].args
+            and not node.args[0].keywords
+        ):
+            self.join_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
             and node.func.id == "filter"
@@ -237,6 +249,7 @@ def _fix(contents_text: str) -> str:
     if not any(
         (
             visitor.builtin_calls,
+            visitor.join_calls,
             visitor.filter_calls,
             visitor.zip_calls,
             visitor.comparison_ins,
@@ -255,7 +268,9 @@ def _fix(contents_text: str) -> str:
     for i, token in reversed_enumerate(tokens):
         if not token.src or token.src in visitor.lookalikes:
             continue
-        elif token.offset in visitor.builtin_calls:
+        elif (
+            token.offset in visitor.builtin_calls or token.offset in visitor.join_calls
+        ):
             j = _find_token(tokens, i, "(")
             func_args, _ = _parse_call_args(tokens, j)
             start, end = func_args[0]
