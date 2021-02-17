@@ -26,7 +26,7 @@ def test_zip(s, expected):
 
 
 @pytest.mark.parametrize(
-    "s", (pytest.param("zip([1, 2, 3], [4, 5, 6])", id="no keys"),),
+    "s", (pytest.param("zip([1, 2, 3], [4, 5, 6])", id="no keys"),)
 )
 def test_zip_noop(s):
     assert _fix(s) == s
