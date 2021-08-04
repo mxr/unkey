@@ -35,7 +35,7 @@ variable to prevent rewriting.
 
 ```python
 # will be rewritten
-min({1: 2, 3: 4}.keys())  # becomes min({1: 2, 3: 4}
+min({1: 2, 3: 4}.keys())  # becomes min({1: 2, 3: 4})
 
 # will not be rewritten
 keys = {1: 2, 3: 4}.keys()
@@ -65,10 +65,10 @@ Rewrites builtin calls that have iterable arguments
 +min(d)
 
 -min(f().keys())
-+min(f)
++min(f())
 
  # more complex cases
--min(d1().x.y(1,2,3,(4,5)).keys())
+-min(d1().x.y(1, 2 ,3, (4, 5)).keys())
 +min(d1().x.y(1, 2, 3, (4, 5)))
 ```
 
