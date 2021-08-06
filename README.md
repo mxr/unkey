@@ -121,6 +121,21 @@ Rewrites relevant list/dict/set comprehensions and generator expressions
 +{x: x for x in d}
 ```
 
+### Iteration
+
+Rewrites iteration
+
+```diff
+-for _ in d.keys(): pass
++for _ in d: pass
+
+-for _ in {}.keys(): pass
++for _ in {}: pass
+
+-for _ in f().keys(): pass
++for _ in f(): pass
+```
+
 For additional linting in this space check out [`flake8-comprehensions`][flake8-comprehensions].
 
 ## Acknowledgements
