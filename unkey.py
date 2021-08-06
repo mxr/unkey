@@ -79,6 +79,7 @@ class Finder(ast.NodeVisitor):
         self.zip_calls: Set[Offset] = set()
         self.comparison_ins: Set[Offset] = set()
         self.comprehension_ins: Set[Offset] = set()
+        self.for_ins: Set[Offset] = set()
 
         self.lookalikes: Set[str] = set()
 
@@ -149,19 +150,7 @@ class Finder(ast.NodeVisitor):
             and isinstance(node.ops[0], ast.In)
             and len(node.comparators) == 1
             and isinstance(node.comparators[0], ast.Call)
-            and isinstance(node.comparators[0].func, ast.Attribute)
-            and (
-                isinstance(node.comparators[0].func.value, (ast.Name, ast.Dict))
-                or (
-                    isinstance(node.comparators[0].func.value, ast.Call)
-                    and isinstance(node.comparators[0].func.value.func, ast.Name)
-                    and not node.comparators[0].func.value.args
-                    and not node.comparators[0].func.value.keywords
-                )
-            )
-            and node.comparators[0].func.attr == "keys"
-            and not node.comparators[0].args
-            and not node.comparators[0].keywords
+            and self._can_rewrite_in(node.comparators[0])
         ):
             self.comparison_ins.add(_ast_to_offset(node.comparators[0].func))
         self.generic_visit(node)
@@ -172,28 +161,36 @@ class Finder(ast.NodeVisitor):
         self.comprehension_ins.update(
             _ast_to_offset(cmp.iter.func)
             for cmp in node.generators
-            if (
-                isinstance(cmp.iter, ast.Call)
-                and isinstance(cmp.iter.func, ast.Attribute)
-                and (
-                    isinstance(cmp.iter.func.value, (ast.Name, ast.Dict))
-                    or (
-                        isinstance(cmp.iter.func.value, ast.Call)
-                        and isinstance(cmp.iter.func.value.func, ast.Name)
-                        and not cmp.iter.func.value.args
-                        and not cmp.iter.func.value.keywords
-                    )
-                )
-                and cmp.iter.func.attr == "keys"
-                and not cmp.iter.args
-                and not cmp.iter.keywords
-            )
+            if isinstance(cmp.iter, ast.Call) and self._can_rewrite_in(cmp.iter)
         )
 
         self.generic_visit(node)
 
     visit_ListComp = visit_SetComp = _visit_comp
     visit_DictComp = visit_GeneratorExp = _visit_comp
+
+    def visit_For(self, node: ast.For) -> None:
+        if isinstance(node.iter, ast.Call) and self._can_rewrite_in(node.iter):
+            self.for_ins.add(_ast_to_offset(node.iter.func))
+
+        self.generic_visit(node)
+
+    def _can_rewrite_in(self, call: ast.Call) -> bool:
+        return (
+            isinstance(call.func, ast.Attribute)
+            and (
+                isinstance(call.func.value, (ast.Name, ast.Dict))
+                or (
+                    isinstance(call.func.value, ast.Call)
+                    and isinstance(call.func.value.func, ast.Name)
+                    and not call.func.value.args
+                    and not call.func.value.keywords
+                )
+            )
+            and call.func.attr == "keys"
+            and not call.args
+            and not call.keywords
+        )
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
@@ -254,6 +251,7 @@ def _fix(contents_text: str) -> str:
             visitor.zip_calls,
             visitor.comparison_ins,
             visitor.comprehension_ins,
+            visitor.for_ins,
         )
     ):
         return contents_text
@@ -297,6 +295,7 @@ def _fix(contents_text: str) -> str:
         elif (
             token.offset in visitor.comparison_ins
             or token.offset in visitor.comprehension_ins
+            or token.offset in visitor.for_ins
         ):
             j = _find_token(tokens, _find_token(tokens, i, "keys"), ")")
             src = tokens_to_src(tokens[i : j + 1])
