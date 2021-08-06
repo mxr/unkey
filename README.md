@@ -14,7 +14,7 @@ Sample `.pre-commit-config.yaml`:
 
 ```yaml
 -   repo: https://github.com/mxr/unkey
-    rev: v0.0.0
+    rev: v0.0.1
     hooks:
     -   id: unkey
 ```
