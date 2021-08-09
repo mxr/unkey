@@ -101,48 +101,27 @@ class Finder(ast.NodeVisitor):
             isinstance(node.func, ast.Name)
             and node.func.id in self.SIMPLE_BUILTINS
             and len(node.args) == 1
-            and isinstance(node.args[0], ast.Call)
-            and isinstance(node.args[0].func, ast.Attribute)
-            and node.args[0].func.attr == "keys"
-            and not node.args[0].args
-            and not node.args[0].keywords
+            and self._can_rewrite(node.args[0])
         ):
             self.builtin_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Attribute)
             and node.func.attr == "join"
             and len(node.args) == 1
-            and isinstance(node.args[0], ast.Call)
-            and isinstance(node.args[0].func, ast.Attribute)
-            and node.args[0].func.attr == "keys"
-            and not node.args[0].args
-            and not node.args[0].keywords
+            and self._can_rewrite(node.args[0])
         ):
             self.join_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
             and node.func.id in self.FUNCTIONAL
             and len(node.args) == 2
-            and isinstance(node.args[1], ast.Call)
-            and isinstance(node.args[1].func, ast.Attribute)
-            and node.args[1].func.attr == "keys"
-            and not node.args[1].args
-            and not node.args[1].keywords
+            and self._can_rewrite(node.args[1])
         ):
             self.functional_calls.add(_ast_to_offset(node))
         elif (
             isinstance(node.func, ast.Name)
             and node.func.id == "zip"
-            and any(
-                (
-                    isinstance(arg, ast.Call)
-                    and isinstance(arg.func, ast.Attribute)
-                    and arg.func.attr == "keys"
-                    and not arg.args
-                    and not arg.keywords
-                )
-                for arg in node.args
-            )
+            and any(self._can_rewrite(arg) for arg in node.args)
         ):
             self.zip_calls.add(_ast_to_offset(node.func))
 
@@ -191,6 +170,15 @@ class Finder(ast.NodeVisitor):
                     and not node.func.value.keywords
                 )
             )
+            and node.func.attr == "keys"
+            and not node.args
+            and not node.keywords
+        )
+
+    def _can_rewrite(self, node: ast.expr) -> "TypeGuard[ast.Call]":
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
             and node.func.attr == "keys"
             and not node.args
             and not node.keywords
