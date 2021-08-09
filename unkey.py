@@ -1,5 +1,6 @@
 import argparse
 import ast
+import contextlib
 import re
 import sys
 import tokenize
@@ -17,6 +18,9 @@ from tokenize_rt import src_to_tokens
 from tokenize_rt import Token
 from tokenize_rt import tokens_to_src
 from tokenize_rt import UNIMPORTANT_WS
+
+with contextlib.suppress(ImportError):
+    from typing_extensions import TypeGuard
 
 BRACES = {"(": ")", "[": "]", "{": "}"}
 RE_KEYS = re.compile(r"\.keys\(\s*\)$")
@@ -149,7 +153,6 @@ class Finder(ast.NodeVisitor):
             len(node.ops) == 1
             and isinstance(node.ops[0], ast.In)
             and len(node.comparators) == 1
-            and isinstance(node.comparators[0], ast.Call)
             and self._can_rewrite_in(node.comparators[0])
         ):
             self.comparison_ins.add(_ast_to_offset(node.comparators[0].func))
@@ -161,7 +164,7 @@ class Finder(ast.NodeVisitor):
         self.comprehension_ins.update(
             _ast_to_offset(cmp.iter.func)
             for cmp in node.generators
-            if isinstance(cmp.iter, ast.Call) and self._can_rewrite_in(cmp.iter)
+            if self._can_rewrite_in(cmp.iter)
         )
 
         self.generic_visit(node)
@@ -170,26 +173,27 @@ class Finder(ast.NodeVisitor):
     visit_DictComp = visit_GeneratorExp = _visit_comp
 
     def visit_For(self, node: ast.For) -> None:
-        if isinstance(node.iter, ast.Call) and self._can_rewrite_in(node.iter):
+        if self._can_rewrite_in(node.iter):
             self.for_ins.add(_ast_to_offset(node.iter.func))
 
         self.generic_visit(node)
 
-    def _can_rewrite_in(self, call: ast.Call) -> bool:
+    def _can_rewrite_in(self, node: ast.expr) -> "TypeGuard[ast.Call]":
         return (
-            isinstance(call.func, ast.Attribute)
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
             and (
-                isinstance(call.func.value, (ast.Name, ast.Dict))
+                isinstance(node.func.value, (ast.Name, ast.Dict))
                 or (
-                    isinstance(call.func.value, ast.Call)
-                    and isinstance(call.func.value.func, ast.Name)
-                    and not call.func.value.args
-                    and not call.func.value.keywords
+                    isinstance(node.func.value, ast.Call)
+                    and isinstance(node.func.value.func, ast.Name)
+                    and not node.func.value.args
+                    and not node.func.value.keywords
                 )
             )
-            and call.func.attr == "keys"
-            and not call.args
-            and not call.keywords
+            and node.func.attr == "keys"
+            and not node.args
+            and not node.keywords
         )
 
 
