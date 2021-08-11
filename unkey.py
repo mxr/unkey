@@ -161,6 +161,9 @@ class Finder(ast.NodeVisitor):
         return (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "keys"
+            and not node.args
+            and not node.keywords
             and (
                 isinstance(node.func.value, (ast.Name, ast.Dict))
                 or (
@@ -170,9 +173,6 @@ class Finder(ast.NodeVisitor):
                     and not node.func.value.keywords
                 )
             )
-            and node.func.attr == "keys"
-            and not node.args
-            and not node.keywords
         )
 
     def _can_rewrite(self, node: ast.expr) -> "TypeGuard[ast.Call]":
