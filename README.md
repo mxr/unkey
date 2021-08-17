@@ -45,8 +45,8 @@ min(keys)
 ### Disclaimer
 
 Since AST parsing does not always tell us the type of an object, there may be
-false positives and  unsedsirable rewrites or bugs. With that said the tool is
-designed to err on the side of not rewriting rather  than being very clever and
+false positives and undesirable rewrites or bugs. With that said the tool is
+designed to err on the side of not rewriting rather than being very clever and
 rewriting as much as possible. To exclude rewrite, see the above section. PRs
 are always welcome to help out!
 
