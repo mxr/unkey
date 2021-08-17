@@ -51,6 +51,10 @@ repos:
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
+-   repo: https://github.com/mxr/unkey
+    rev: v0.0.1
+    hooks:
+    -   id: unkey
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.910
     hooks:
