@@ -21,7 +21,7 @@ repos:
         -   flake8-bugbear==21.9.2
         -   flake8-builtins==1.5.3
         -   flake8-comprehensions==3.7.0
-        -   flake8-typing-imports==1.11.1
+        -   flake8-typing-imports==1.11.0
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.3
     hooks:
@@ -31,7 +31,7 @@ repos:
         -   flake8-bugbear==21.9.2
         -   flake8-builtins==1.5.3
         -   flake8-comprehensions==3.7.0
-        -   flake8-typing-imports==1.11.1
+        -   flake8-typing-imports==1.11.0
 -   repo: https://github.com/asottile/reorder_python_imports
     rev: v2.6.0
     hooks:
