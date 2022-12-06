@@ -19,19 +19,21 @@ repos:
     -   id: flake8
         additional_dependencies:
         -   flake8-bugbear==22.7.1
-        -   flake8-builtins==1.5.3
-        -   flake8-comprehensions==3.10.0
-        -   flake8-typing-imports==1.12.0
+        -   flake8-builtins==2.0.1
+        -   flake8-comprehensions==3.10.1
+        -   flake8-simplify==0.19.3
+        -   flake8-typing-imports==1.14.0
 -   repo: https://github.com/asottile/yesqa
     rev: v1.4.0
     hooks:
     -   id: yesqa
         additional_dependencies:
-        -   flake8==4.0.1
+        -   flake8==6.0.0
         -   flake8-bugbear==22.7.1
-        -   flake8-builtins==1.5.3
-        -   flake8-comprehensions==3.10.0
-        -   flake8-typing-imports==1.12.0
+        -   flake8-builtins==2.0.1
+        -   flake8-comprehensions==3.10.1
+        -   flake8-simplify==0.19.3
+        -   flake8-typing-imports==1.14.0
 -   repo: https://github.com/asottile/reorder_python_imports
     rev: v3.9.0
     hooks:
@@ -41,11 +43,11 @@ repos:
     rev: 22.10.0
     hooks:
     -   id: black
--   repo: https://github.com/asottile/blacken-docs
+-   repo: https://github.com/adamchainz/blacken-docs
     rev: v1.12.1
     hooks:
     -   id: blacken-docs
-        additional_dependencies: [black==22.6.0]
+        additional_dependencies: [black==22.10.0]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v3.3.0
     hooks:
