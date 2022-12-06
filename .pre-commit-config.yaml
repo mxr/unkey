@@ -13,7 +13,7 @@ repos:
     rev: v2.2.0
     hooks:
     -   id: setup-cfg-fmt
-        args: [--min-py3-version=3.6]
+        args: [--min-py3-version=3.6.1]
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
