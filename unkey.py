@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import ast
 import contextlib
@@ -5,12 +7,7 @@ import re
 import sys
 import tokenize
 import warnings
-from typing import List
-from typing import Optional
 from typing import Sequence
-from typing import Set
-from typing import Tuple
-from typing import Union
 
 from tokenize_rt import Offset
 from tokenize_rt import reversed_enumerate
@@ -27,14 +24,14 @@ RE_KEYS = re.compile(r"\.keys\(\s*\)$")
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
-def _find_token(tokens: List[Token], i: int, src: str) -> int:
+def _find_token(tokens: list[Token], i: int, src: str) -> int:
     while tokens[i].src != src:
         i += 1
     return i
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
-def _ast_to_offset(node: Union[ast.expr, ast.stmt]) -> Offset:
+def _ast_to_offset(node: ast.expr | ast.stmt) -> Offset:
     return Offset(node.lineno, node.col_offset)
 
 
@@ -77,15 +74,15 @@ class Finder(ast.NodeVisitor):
     LOOKALIKES = SIMPLE_BUILTINS | FUNCTIONAL | frozenset(("join", "zip"))
 
     def __init__(self) -> None:
-        self.builtin_calls: Set[Offset] = set()
-        self.join_calls: Set[Offset] = set()
-        self.functional_calls: Set[Offset] = set()
-        self.zip_calls: Set[Offset] = set()
-        self.comparison_ins: Set[Offset] = set()
-        self.comprehension_ins: Set[Offset] = set()
-        self.for_ins: Set[Offset] = set()
+        self.builtin_calls: set[Offset] = set()
+        self.join_calls: set[Offset] = set()
+        self.functional_calls: set[Offset] = set()
+        self.zip_calls: set[Offset] = set()
+        self.comparison_ins: set[Offset] = set()
+        self.comprehension_ins: set[Offset] = set()
+        self.for_ins: set[Offset] = set()
 
-        self.lookalikes: Set[str] = set()
+        self.lookalikes: set[str] = set()
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         self.lookalikes.update(
@@ -138,7 +135,7 @@ class Finder(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _visit_comp(
-        self, node: Union[ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp]
+        self, node: ast.ListComp | ast.SetComp | ast.DictComp | ast.GeneratorExp
     ) -> None:
         self.comprehension_ins.update(
             _ast_to_offset(cmp.iter.func)
@@ -157,7 +154,7 @@ class Finder(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    def _can_rewrite_in(self, node: ast.expr) -> "TypeGuard[ast.Call]":
+    def _can_rewrite_in(self, node: ast.expr) -> TypeGuard[ast.Call]:
         return (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
@@ -175,7 +172,7 @@ class Finder(ast.NodeVisitor):
             )
         )
 
-    def _can_rewrite(self, node: ast.expr) -> "TypeGuard[ast.Call]":
+    def _can_rewrite(self, node: ast.expr) -> TypeGuard[ast.Call]:
         return (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
@@ -186,7 +183,7 @@ class Finder(ast.NodeVisitor):
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
-def _fixup_dedent_tokens(tokens: List[Token]) -> None:
+def _fixup_dedent_tokens(tokens: list[Token]) -> None:
     """For whatever reason the DEDENT / UNIMPORTANT_WS tokens are misordered
 
     | if True:
@@ -202,7 +199,7 @@ def _fixup_dedent_tokens(tokens: List[Token]) -> None:
 
 
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
-def _parse_call_args(tokens: List[Token], i: int) -> Tuple[List[Tuple[int, int]], int]:
+def _parse_call_args(tokens: list[Token], i: int) -> tuple[list[tuple[int, int]], int]:
     args = []
     stack = [i]
     i += 1
@@ -319,7 +316,7 @@ def _fix_file(filename: str) -> int:
     return 0
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs="*")
     args = parser.parse_args(argv)
