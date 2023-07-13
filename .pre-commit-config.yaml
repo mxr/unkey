@@ -9,6 +9,10 @@ repos:
     -   id: name-tests-test
     -   id: requirements-txt-fixer
     -   id: trailing-whitespace
+-   repo: https://github.com/hakancelikdev/unimport
+    rev: 0.16.0
+    hooks:
+    -   id: unimport
 -   repo: https://github.com/asottile/setup-cfg-fmt
     rev: v2.3.0
     hooks:
@@ -36,7 +40,7 @@ repos:
     rev: v3.10.0
     hooks:
     -   id: reorder-python-imports
-        args: [--py37-plus]
+        args: [--py38-plus, --add-import, 'from __future__ import annotations']
 -   repo: https://github.com/psf/black
     rev: 23.3.0
     hooks:
@@ -50,7 +54,7 @@ repos:
     rev: v3.7.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus]
+        args: [--py38-plus]
 -   repo: https://github.com/mxr/unkey
     rev: v0.0.1
     hooks:
