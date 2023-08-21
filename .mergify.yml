@@ -6,4 +6,4 @@ pull_request_rules:
     -   title=[pre-commit.ci] pre-commit autoupdate
     actions:
         merge:
-            method: merge
+            method: squash
