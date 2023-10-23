@@ -1,5 +1,7 @@
 # `unkey`
 
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mxr/unkey/main.svg)](https://results.pre-commit.ci/latest/github/mxr/unkey/main)
+
 A tool and pre-commit hook to automatically remove extra calls to `keys()`.
 
 ## Installation
