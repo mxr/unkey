@@ -18,8 +18,7 @@ extend-select = [
   "TCH"  # see flake8-type-checking
 ]
 
-['tool.mypy-testing.*']
+[[tool.mypy.overrides]]
+module = ["testing.*", "tests.*]
 disallow_untyped_defs = false
 
-['tool.mypy-tests.*']
-disallow_untyped_defs = false
