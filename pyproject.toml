@@ -21,4 +21,3 @@ extend-select = [
 [[tool.mypy.overrides]]
 module = ["testing.*", "tests.*]
 disallow_untyped_defs = false
-
