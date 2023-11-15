@@ -9,7 +9,7 @@ jobs:
   main:
     uses: asottile/workflows/.github/workflows/tox.yml@v1.6.0
     with:
-      env: '["py310", "py311", "py312", "py313", "pypy3"]'
+      env: '["py310", "py311", "py312", "py313", "pypy3.10"]'
   main-win:
     uses: asottile/workflows/.github/workflows/tox.yml@v1.6.0
     with:
