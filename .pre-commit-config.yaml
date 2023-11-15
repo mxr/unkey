@@ -34,4 +34,3 @@ repos:
     rev: v1.7.0
     hooks:
     -   id: mypy
-        additional_dependencies: [typing_extensions==4.4.0]
