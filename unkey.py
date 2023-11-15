@@ -28,8 +28,6 @@ def _find_token(tokens: list[Token], i: int, src: str) -> int:
     return i
 
 
-
-
 # vendored from asottile/pyupgrade@06444be5513ab77a149b7b4ae44d51803561e36f
 def _ast_to_offset(node: ast.expr | ast.stmt) -> Offset:
     return Offset(node.lineno, node.col_offset)
