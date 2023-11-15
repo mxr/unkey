@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import argparse
 import ast
-import contextlib
 import re
 import sys
 import tokenize
 import warnings
-from typing import Sequence
+from collections.abc import Sequence
 from typing import TypeGuard
 
 from tokenize_rt import Offset
