@@ -13,7 +13,7 @@ repos:
   rev: v2.5.0
   hooks:
   - id: setup-cfg-fmt
-    args: [--min-py-version, '3.8']
+    args: [--min-py-version, '3.10']
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: v2.11.0
   hooks:
@@ -25,7 +25,7 @@ repos:
   rev: v3.12.0
   hooks:
   - id: reorder-python-imports
-    args: [--py38-plus, --add-import, from __future__ import annotations]
+    args: [--py310-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/mxr/unkey
   rev: v0.0.1
   hooks:
@@ -40,4 +40,3 @@ repos:
   rev: v1.6.1
   hooks:
   - id: mypy
-    additional_dependencies: [typing_extensions==4.4.0]

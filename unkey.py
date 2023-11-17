@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import argparse
 import ast
-import contextlib
 import re
 import sys
 import tokenize
 import warnings
-from typing import Sequence
+from collections.abc import Sequence
+from typing import TypeGuard
 
 from tokenize_rt import Offset
 from tokenize_rt import reversed_enumerate
@@ -16,8 +16,6 @@ from tokenize_rt import Token
 from tokenize_rt import tokens_to_src
 from tokenize_rt import UNIMPORTANT_WS
 
-with contextlib.suppress(ImportError):
-    from typing_extensions import TypeGuard
 
 BRACES = {"(": ")", "[": "]", "{": "}"}
 RE_KEYS = re.compile(r"\.keys\(\s*\)$")
