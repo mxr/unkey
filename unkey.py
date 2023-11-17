@@ -6,7 +6,8 @@ import re
 import sys
 import tokenize
 import warnings
-from typing import TypeGuard, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from typing import TypeGuard
 
 from tokenize_rt import Offset
 from tokenize_rt import reversed_enumerate
