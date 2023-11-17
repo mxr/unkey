@@ -6,8 +6,7 @@ import re
 import sys
 import tokenize
 import warnings
-from collections.abc import Sequence
-from typing import TypeGuard
+from typing import TypeGuard, TYPE_CHECKING
 
 from tokenize_rt import Offset
 from tokenize_rt import reversed_enumerate
@@ -15,6 +14,9 @@ from tokenize_rt import src_to_tokens
 from tokenize_rt import Token
 from tokenize_rt import tokens_to_src
 from tokenize_rt import UNIMPORTANT_WS
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 BRACES = {"(": ")", "[": "]", "{": "}"}
