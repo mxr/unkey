@@ -6,7 +6,7 @@ import re
 import sys
 import tokenize
 import warnings
-from collections.abc import Sequence
+from typing import Sequence
 from typing import TypeGuard
 
 from tokenize_rt import Offset
@@ -160,7 +160,7 @@ class Finder(ast.NodeVisitor):
             and not node.args
             and not node.keywords
             and (
-                isinstance(node.func.value, (ast.Name, ast.Dict))
+                isinstance(node.func.value, ast.Name| ast.Dict)
                 or (
                     isinstance(node.func.value, ast.Call)
                     and isinstance(node.func.value.func, ast.Name)
