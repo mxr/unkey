@@ -1,6 +1,6 @@
--   id: unkey
-    name: unkey
-    description: Automatically remove extra calls to keys().
-    entry: unkey
-    language: python
-    types: [python]
+- id: unkey
+  name: unkey
+  description: Automatically remove extra calls to keys().
+  entry: unkey
+  language: python
+  types: [python]

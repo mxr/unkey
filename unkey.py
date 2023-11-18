@@ -6,7 +6,7 @@ import re
 import sys
 import tokenize
 import warnings
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 from typing import TypeGuard
 
 from tokenize_rt import Offset
@@ -15,6 +15,9 @@ from tokenize_rt import src_to_tokens
 from tokenize_rt import Token
 from tokenize_rt import tokens_to_src
 from tokenize_rt import UNIMPORTANT_WS
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 BRACES = {"(": ")", "[": "]", "{": "}"}
@@ -160,7 +163,7 @@ class Finder(ast.NodeVisitor):
             and not node.args
             and not node.keywords
             and (
-                isinstance(node.func.value, (ast.Name, ast.Dict))
+                isinstance(node.func.value, ast.Name | ast.Dict)
                 or (
                     isinstance(node.func.value, ast.Call)
                     and isinstance(node.func.value.func, ast.Name)
