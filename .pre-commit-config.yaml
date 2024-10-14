@@ -10,7 +10,7 @@ repos:
   - id: requirements-txt-fixer
   - id: trailing-whitespace
 - repo: https://github.com/asottile/setup-cfg-fmt
-  rev: v2.5.0
+  rev: v2.7.0
   hooks:
   - id: setup-cfg-fmt
     args: [--min-py-version, '3.10']
@@ -22,7 +22,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/asottile/reorder-python-imports
-  rev: v3.13.0
+  rev: v3.14.0
   hooks:
   - id: reorder-python-imports
     args: [--py310-plus, --add-import, from __future__ import annotations]
