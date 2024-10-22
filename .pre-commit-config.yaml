@@ -27,7 +27,7 @@ repos:
   - id: reorder-python-imports
     args: [--py310-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/mxr/unkey
-  rev: v0.0.1
+  rev: v0.0.2
   hooks:
   - id: unkey
 - repo: https://github.com/astral-sh/ruff-pre-commit
