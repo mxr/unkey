@@ -36,13 +36,7 @@ def test_builtins_complex(s, expected):
 
 
 def test_builtins_dedent_coverage():
-    s = (
-        "if True:\n"
-        "    if True:\n"
-        "        min(d.keys())\n"
-        "    else:\n"
-        "        pass\n"
-    )
+    s = "if True:\n    if True:\n        min(d.keys())\n    else:\n        pass\n"
 
     # fmt:off
     expected = (
